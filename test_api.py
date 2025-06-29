@@ -10,14 +10,15 @@ import time
 BASE_URL = "http://localhost:8000/api"
 
 def test_api():
-    print("🎮 HealthQuest API 테스트 시작\n")
+    print("HealthQuest API 테스트 시작\n")
     
     # 1. 회원가입 테스트
     print("1. 회원가입 테스트...")
+    timestamp = int(time.time())
     register_data = {
-        "email": f"user{int(time.time())}@example.com",
-        "username": f"user{int(time.time())}",
-        "nickname": "API테스터",
+        "email": f"user{timestamp}@example.com",
+        "username": f"user{timestamp}",
+        "nickname": f"API테스터{timestamp}",
         "password": "testpass123",
         "password_confirm": "testpass123",
         "gender": "female",
@@ -28,13 +29,13 @@ def test_api():
     
     response = requests.post(f"{BASE_URL}/auth/register/", json=register_data)
     if response.status_code == 201:
-        print("✅ 회원가입 성공!")
+        print("회원가입 성공!")
         data = response.json()
         access_token = data['tokens']['access']
         user_id = data['user']['id']
         print(f"   사용자 ID: {user_id}, 닉네임: {data['user']['nickname']}")
     else:
-        print(f"❌ 회원가입 실패: {response.text}")
+        print(f"회원가입 실패: {response.text}")
         return
     
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -43,7 +44,7 @@ def test_api():
     print("\n2. 사용자 정보 조회...")
     response = requests.get(f"{BASE_URL}/auth/me/", headers=headers)
     if response.status_code == 200:
-        print("✅ 사용자 정보 조회 성공!")
+        print("사용자 정보 조회 성공!")
         user_data = response.json()
         print(f"   닉네임: {user_data['nickname']}, 활동 수준: {user_data['activity_level']}")
     else:
@@ -92,23 +93,35 @@ def test_api():
     else:
         print(f"❌ 연속 완료 기록 조회 실패: {response.text}")
     
-    # 7. 길드 목록 조회
-    print("\n7. 길드 목록 조회...")
-    response = requests.get(f"{BASE_URL}/guilds/", headers=headers)
-    if response.status_code == 200:
-        print("✅ 길드 목록 조회 성공!")
-        guilds = response.json()
-        print(f"   공개 길드 수: {len(guilds)}")
+    # 7. 영양 기록 테스트
+    print("\n7. 영양 기록 테스트...")
+    nutrition_data = {
+        "meal_type": "breakfast",
+        "meal_quality": "good",
+        "included_vegetables": True,
+        "included_protein": True,
+        "included_grains": True,
+        "proper_portion": True,
+        "notes": "건강한 아침식사",
+        "calories_estimate": 500
+    }
+    response = requests.post(f"{BASE_URL}/characters/nutrition-logs/", json=nutrition_data, headers=headers)
+    if response.status_code == 201:
+        print("✅ 영양 기록 생성 성공!")
+        nutrition_log = response.json()
+        print(f"   영양 점수: {nutrition_log['nutrition_score']}")
     else:
-        print(f"❌ 길드 목록 조회 실패: {response.text}")
+        print(f"❌ 영양 기록 생성 실패: {response.text}")
     
-    # 8. 내 길드 조회 (없을 것임)
-    print("\n8. 내 길드 조회...")
-    response = requests.get(f"{BASE_URL}/guilds/my/", headers=headers)
-    if response.status_code == 404:
-        print("✅ 내 길드 조회 성공! (길드 미소속 상태)")
+    # 8. 영양 통계 조회
+    print("\n8. 영양 통계 조회...")
+    response = requests.get(f"{BASE_URL}/characters/nutrition-logs/stats/", headers=headers)
+    if response.status_code == 200:
+        print("✅ 영양 통계 조회 성공!")
+        stats = response.json()
+        print(f"   일일 평균 점수: {stats['daily_average_score']}")
     else:
-        print(f"❌ 예상과 다른 응답: {response.status_code} {response.text}")
+        print(f"❌ 영양 통계 조회 실패: {response.text}")
     
     print("\n🎉 모든 API 테스트 완료!")
 

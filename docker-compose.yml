@@ -21,7 +21,7 @@ services:
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py migrate && python manage.py setup_dev && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/code
     ports:
@@ -46,6 +46,19 @@ services:
       - DEBUG=1
       - DATABASE_URL=postgresql://healthquest:healthquest123@db:5432/healthquest
       - REDIS_URL=redis://redis:6379/0
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - web
 
 volumes:
   postgres_data:

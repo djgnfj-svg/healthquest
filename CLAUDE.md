@@ -30,9 +30,56 @@ HealthQuest is a health management RPG web service that gamifies healthy lifesty
 
 ## Development Commands
 
-Since the project is in planning phase, these commands will be relevant once implementation begins:
+The project is currently implemented as a Django backend with Docker containerization.
 
-### Python/Django Backend
+### Docker Development (Primary)
+```bash
+# Build and run all services
+docker-compose up --build -d
+
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs web
+docker-compose logs celery
+
+# Django management commands (within container)
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py makemigrations
+docker-compose exec web python manage.py shell
+docker-compose exec web python manage.py collectstatic
+
+# Create superuser
+docker-compose exec web python manage.py shell -c "
+from apps.accounts.models import User
+User.objects.create_superuser(
+    username='admin',
+    email='admin@healthquest.com', 
+    password='admin123',
+    nickname='관리자'
+)"
+
+# Generate sample quest data
+docker-compose exec web python manage.py create_sample_quests
+
+# Stop services
+docker-compose down
+```
+
+### Testing
+```bash
+# Run comprehensive API tests
+python3 test_api.py
+
+# Run Django unit tests
+docker-compose exec web python manage.py test
+
+# Test specific app
+docker-compose exec web python manage.py test apps.characters
+```
+
+### Local Development (Alternative)
 ```bash
 # Setup virtual environment
 python3 -m venv venv
@@ -41,40 +88,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Django management
-python manage.py migrate
+# Run with local database (requires PostgreSQL and Redis)
 python manage.py runserver
-python manage.py test
-python manage.py collectstatic
 
-# Celery (for background tasks)
+# Run Celery worker
 celery -A healthquest worker --loglevel=info
-```
-
-### Frontend (when React is set up)
-```bash
-# Install dependencies
-npm install
-
-# Development
-npm run dev
-npm run build
-npm run test
-npm run lint
-npm run type-check
-
-# PWA build
-npm run build:pwa
-```
-
-### Docker Development
-```bash
-# Build and run containers
-docker-compose up --build
-docker-compose down
-
-# Run specific services
-docker-compose up postgres redis
 ```
 
 ## Core Architecture
@@ -102,64 +120,114 @@ The application centers around an 8-stat character system:
 - Real-time encouragement messaging
 - Couple/family collaboration modes
 
-### Data Models (Planned)
-Key Django models will include:
-- `User` (extended Django user)
-- `Character` (user's RPG character with 8 stats)
-- `Quest` (individual tasks/challenges)
-- `QuestCompletion` (tracking user progress)
-- `Guild` (team/group functionality)
-- `Reward` (experience, gold, gems, titles, skins)
+### Data Models (Implemented)
+Key Django models currently implemented:
 
-## Development Phases
+**apps.accounts.models:**
+- `User` (extended AbstractUser with health profile fields)
+- `UserProfile` (additional profile settings and preferences)
 
-### Phase 1 (Weeks 1-2): Infrastructure & Core Backend
-- Django project setup with Docker
-- JWT authentication system
-- Quest & stats model design
-- Basic REST API CRUD operations
+**apps.characters.models:**
+- `Character` (RPG character with 8-stat system and game currency)
+- `Achievement` (system-wide achievements/titles)
+- `UserAchievement` (user's earned achievements)
+- `StatHistory` (tracks character stat changes over time)
 
-### Phase 2 (Weeks 3-4): Frontend Foundation
-- React app architecture
-- Component library setup
-- Main dashboard implementation
-- Quest completion functionality
+**apps.quests.models:** (structure inferred from API endpoints)
+- Quest system with difficulty levels and categories
+- Quest completion tracking and streak mechanics
 
-### Phase 3 (Weeks 5-6): Advanced Features
-- AI recommendation system prototype
-- Guild system development
-- Real-time notifications (WebSocket)
-- Data visualization charts
+**apps.guilds.models:** (structure inferred from API endpoints)
+- Guild creation and membership system
+- Guild messaging and collaborative features
 
-### Phase 4 (Week 7): PWA & Mobile
-- PWA configuration and offline support
-- Responsive design completion
-- Push notification implementation
+## Current Implementation Status
 
-### Phase 5 (Week 8): Testing & Deployment
-- Unit and integration tests
+### ✅ Completed (Phase 1)
+- Django 4.2 project setup with Docker containerization
+- JWT authentication system using django-rest-framework-simplejwt
+- Extended User model with health profile fields
+- Complete 8-stat character system with experience/leveling
+- Achievement system with categories and rewards
+- Stat history tracking for progress visualization
+- Basic REST API with comprehensive endpoints
+- PostgreSQL database with Redis caching
+- Celery background task system
+- CORS configuration for frontend integration
+
+### 🚧 In Progress
+- Quest system implementation (models and API endpoints exist)
+- Guild system with membership and messaging
+- Sample data generation management command
+
+### 📋 Next Development Phases
+
+### Phase 2: Frontend Foundation
+- React 18 + TypeScript application
+- Component library with Tailwind CSS
+- Main dashboard with character stats visualization
+- Quest management interface
+
+### Phase 3: Advanced Features  
+- AI recommendation system for personalized quests
+- Real-time notifications with WebSocket
+- Advanced data visualization with Chart.js/D3.js
+- Weather and calendar integration
+
+### Phase 4: PWA & Mobile
+- Progressive Web App configuration
+- Offline support with service workers
+- Push notifications
+- Mobile-responsive design
+
+### Phase 5: Production Ready
+- Comprehensive testing suite
 - Performance optimization
-- User acceptance testing
-- Production deployment
+- Production deployment pipeline
+- Monitoring and analytics
 
 ## Key Implementation Notes
 
-- The service targets Korean users initially (Korean language support required)
-- Focus on gamification without being overwhelming
-- Emphasize collaboration over competition in social features
-- Privacy-first approach with user data ownership
-- Freemium model with Premium (₩5,000/month) and Pro (₩9,000/month) tiers
+- Custom User model extends AbstractUser with email as USERNAME_FIELD
+- Character stats auto-level on experience gain with configurable distribution
+- JWT tokens: 15min access, 7-day refresh with rotation
+- Korean locale (Asia/Seoul timezone, ko-kr language)
+- CORS configured for localhost:3000 frontend development
+- Database uses PostgreSQL with custom table names
+- All models include Korean verbose names for admin interface
+
+## API Architecture
+
+### Authentication Flow
+1. Register → Auto-creates Character with default stats
+2. Login → Returns JWT access/refresh token pair  
+3. All API endpoints require Bearer token authentication
+4. Character creation is automatic on user registration
+
+### Character Progression System
+- Experience gain triggers automatic level-up calculation
+- Stats auto-distribute on level-up (2 points per level)
+- Stat changes logged in StatHistory for analytics
+- Achievement system tracks user progress milestones
+
+### Service Architecture
+- **web**: Django application server (port 8000)
+- **db**: PostgreSQL 15 (port 5433)
+- **redis**: Redis 7 for caching/sessions (port 6380)
+- **celery**: Background task worker
 
 ## Testing Strategy
 
-- Django: Use pytest-django for backend testing
-- React: Jest and React Testing Library for frontend
-- E2E: Playwright or Cypress for integration testing
-- Performance: Load testing with locust for Django backend
+- **test_api.py**: Comprehensive integration tests covering full user journey
+- Django TestCase for unit testing individual models/views
+- API testing includes authentication, character creation, quest system
+- Test data uses unique timestamps to avoid conflicts
 
-## Deployment
+## Database Schema
 
-- Containerized deployment using Docker
-- CI/CD pipeline with GitHub Actions
-- Database migrations handled through Django's migration system
-- Static files served through CDN (AWS CloudFront or similar)
+### Key Relationships
+- User (1:1) Character
+- User (1:1) UserProfile  
+- Character (1:N) StatHistory
+- User (M:N) Achievement through UserAchievement
+- Character progression uses experience points with level-based scaling

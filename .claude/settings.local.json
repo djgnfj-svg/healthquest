@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss init:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)",
+      "Bash(python manage.py test:*)",
+      "Bash(docker-compose exec web python manage.py test:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(find:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(python3:*)",
+      "Bash(docker-compose:*)"
+    ],
+    "deny": []
+  }
+}
